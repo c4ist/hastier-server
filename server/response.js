@@ -23,37 +23,43 @@ class Response {
         //... Add more status codes as needed
     }; // Map of status codes to status text
 
+    headers = {}; 
+
     constructor(socket) {
         this.socket = socket;
     }
 
     // Method to set status code
     status(code) {
-        if (this.statusTextMap[code] === undefined) {
-            throw new Error(`Invalid status code: ${code}`);
+        if (!this.statusTextMap[code]) {
+            console.error(`Invalid status code: ${code}`);
+            code = 500; // Default to internal server error
         }
-      
         this.statusCode = code;
         return this;
     }
 
     // Method to set headers
     setHeader(key, value) {
+        if (!key || !value) {
+            console.error(`Invalid header: ${key} = ${value}`);
+            return this; // Ignore invalid headers
+        }
         this.headers[key] = value;
         return this;
     }
 
     // Method to send a response with a body
     send(body) {
-        const response = `HTTP/1.1 ${this.statusCode} ${this.statusTextMap[this.statusCode]}\n\n${body}`;
+        const response = `HTTP/1.1 ${this.statusCode} ${this.statusTextMap[this.statusCode]}\n${this.formatHeaders()}\n\n${body}`;
         this.socket.write(response); // Send the complete response
         this.socket.end(); // End the connection
     }
 
     // Method to send only the status
     sendStatus(statusCode) {
-	    const response = `HTTP/1.1 ${statusCode} ${this.statusTextMap[this.statusCode]} \n\n`;
-	    this.socket.write(response); // Send the complete response
+        const response = `HTTP/1.1 ${statusCode} ${this.statusTextMap[statusCode]} \n\n`;
+        this.socket.write(response); // Send the complete response
         this.socket.end(); // End the connection
     }
 
@@ -64,20 +70,13 @@ class Response {
             .join('\r\n');
     }
 
-  
-  // Send Json response
-	json(data) {
-		data = JSON.stringify(data);
-		const  response = `HTTP/1.1 ${this.statusCode} ${this.statusTextMap[this.statusCode]}\nContent-Type: application/json\n\n${data}`;
-		this.socket.write(response); // Send the complete response
-    this.socket.end(); // End the connection
-	}
-
-
-
-
-
+    // Send Json response
+    json(data) {
+        data = JSON.stringify(data);
+        const response = `HTTP/1.1 ${this.statusCode} ${this.statusTextMap[this.statusCode]}\nContent-Type: application/json\n\n${data}`;
+        this.socket.write(response); // Send the complete response
+        this.socket.end(); // End the connection
+    }
 }
 
 module.exports = Response;
-
